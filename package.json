@@ -4,7 +4,9 @@
   "description": "YouTube字幕取得MCPサーバー - Claude Desktop向けYouTube動画字幕情報取得ツール",
   "type": "module",
   "main": "dist/index.js",
-  "bin": "./dist/index.js",
+  "bin": {
+    "@iamyosuke/youtube-caption-mcp": "./dist/index.js"
+  },
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsup",
