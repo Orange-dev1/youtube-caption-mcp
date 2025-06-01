@@ -236,110 +236,89 @@ export class WorkingYouTubeClient {
           throw new CaptionsNotAvailableError(videoId, normalizedLang, '字幕データの取得に失敗しました');
         }
 
-        // セグメントデータを変換
-        const segments: CaptionSegment[] = [];
-        
-        // transcript の構造を確認して適切にアクセス（型アサーションを使用）
-        const transcriptData = transcript as any;
-        
         // デバッグ用: transcript の構造をより詳細にログ出力
-        console.log(`[downloadCaptions] Transcript body structure:`, transcriptData.body ? 'exists' : 'not exists');
-        if (transcriptData.body?.initial_segments) {
-          console.log(`[downloadCaptions] Initial segments count:`, transcriptData.body.initial_segments.length);
-          console.log(`[downloadCaptions] First segment sample:`, JSON.stringify(transcriptData.body.initial_segments[0], null, 2));
+        console.log(`[downloadCaptions] Transcript body structure:`, transcript as any ? 'exists' : 'not exists');
+        if ((transcript as any)?.body?.initial_segments) {
+          console.log(`[downloadCaptions] Initial segments count:`, (transcript as any)?.body.initial_segments.length);
+          console.log(`[downloadCaptions] First segment sample:`, JSON.stringify((transcript as any)?.body.initial_segments[0], null, 2));
         }
         
-        // より多くのパターンを試す
-        if (transcriptData.content?.body?.initial_segments) {
-          transcriptData.content.body.initial_segments.forEach((segment: any) => {
-            if (segment.start_ms !== undefined && segment.end_ms !== undefined && segment.snippet?.text) {
-              segments.push({
-                start: segment.start_ms / 1000,
-                duration: (segment.end_ms - segment.start_ms) / 1000,
-                text: cleanCaptionText(segment.snippet.text),
-              });
-            }
-          });
+        // transcriptデータから直接セグメントを抽出
+        let initialSegments: any[] = [];
+        
+        // transcriptDataを適切に取得
+        const transcriptData = transcript as any;
+        
+        // 複数の可能な構造をチェック
+        if (transcriptData?.transcript?.content?.body?.initial_segments) {
+          initialSegments = transcriptData.transcript.content.body.initial_segments;
+          console.log(`[downloadCaptions] Found segments in transcript.content.body.initial_segments: ${initialSegments.length}`);
+        } else if (transcriptData?.content?.body?.initial_segments) {
+          initialSegments = transcriptData.content.body.initial_segments;
+          console.log(`[downloadCaptions] Found segments in content.body.initial_segments: ${initialSegments.length}`);
+        } else if (transcriptData?.body?.initial_segments) {
+          initialSegments = transcriptData.body.initial_segments;
+          console.log(`[downloadCaptions] Found segments in body.initial_segments: ${initialSegments.length}`);
+        } else if (transcriptData?.initial_segments) {
+          initialSegments = transcriptData.initial_segments;
+          console.log(`[downloadCaptions] Found segments in initial_segments: ${initialSegments.length}`);
         } else if (Array.isArray(transcriptData)) {
-          // 配列形式の場合
-          transcriptData.forEach((segment: any) => {
-            if (segment.start !== undefined && segment.dur !== undefined && segment.text) {
-              segments.push({
-                start: segment.start,
-                duration: segment.dur,
-                text: cleanCaptionText(segment.text),
-              });
-            } else if (segment.start_time !== undefined && segment.duration !== undefined && segment.text) {
-              segments.push({
-                start: segment.start_time,
-                duration: segment.duration,
-                text: cleanCaptionText(segment.text),
-              });
-            }
-          });
-        } else if (transcriptData.segments) {
-          // segments プロパティがある場合
-          transcriptData.segments.forEach((segment: any) => {
-            if (segment.start !== undefined && segment.duration !== undefined && segment.text) {
-              segments.push({
-                start: segment.start,
-                duration: segment.duration,
-                text: cleanCaptionText(segment.text),
-              });
-            }
-          });
-        } else if (transcriptData.content?.segments) {
-          // content.segments パターン
-          transcriptData.content.segments.forEach((segment: any) => {
-            if (segment.start !== undefined && segment.duration !== undefined && segment.text) {
-              segments.push({
-                start: segment.start,
-                duration: segment.duration,
-                text: cleanCaptionText(segment.text),
-              });
-            }
-          });
-        } else if (transcriptData.actions?.[0]?.updateEngagementPanelAction?.content?.transcriptRenderer?.content?.transcriptSearchPanelRenderer?.body?.transcriptSegmentListRenderer?.initial_segments) {
-          // 新しいYouTube.js構造パターン
-          const initialSegments = transcriptData.actions[0].updateEngagementPanelAction.content.transcriptRenderer.content.transcriptSearchPanelRenderer.body.transcriptSegmentListRenderer.initial_segments;
-          initialSegments.forEach((segment: any) => {
-            if (segment.transcriptSegmentRenderer) {
-              const renderer = segment.transcriptSegmentRenderer;
-              const startMs = renderer.startMs;
-              const endMs = renderer.endMs;
-              const text = renderer.snippet?.runs?.[0]?.text;
+          initialSegments = transcriptData;
+          console.log(`[downloadCaptions] Found segments as array: ${initialSegments.length}`);
+        } else {
+          console.error(`[downloadCaptions] Unexpected transcript structure. Keys:`, Object.keys(transcriptData || {}));
+          console.error(`[downloadCaptions] Sample transcript data:`, JSON.stringify(transcriptData, null, 2).substring(0, 1000));
+        }
+        
+        // セグメントデータを適切なフォーマットに変換
+        const segments: CaptionSegment[] = [];
+        
+        if (initialSegments && initialSegments.length > 0) {
+          initialSegments.forEach((segment: any, index: number) => {
+            try {
+              // セグメントタイプをチェック
+              if (segment.type !== 'TranscriptSegment') {
+                return; // TranscriptSegment以外はスキップ
+              }
               
-              if (startMs !== undefined && endMs !== undefined && text) {
-                segments.push({
-                  start: parseInt(startMs) / 1000,
-                  duration: (parseInt(endMs) - parseInt(startMs)) / 1000,
-                  text: cleanCaptionText(text),
+              // テキストを抽出（snippet.text から）
+              const text = segment.snippet?.text || '';
+              if (!text || !text.trim()) {
+                return; // 空のテキストはスキップ
+              }
+              
+              // 時間情報を抽出
+              const startMs = parseInt(segment.start_ms || '0');
+              const endMs = parseInt(segment.end_ms || segment.start_ms || '0');
+              const start = startMs / 1000;
+              const duration = Math.max(0.1, (endMs - startMs) / 1000); // 最小0.1秒
+              
+              const segmentData: CaptionSegment = {
+                text: cleanCaptionText(text),
+                start,
+                duration,
+              };
+              
+              segments.push(segmentData);
+              
+              // 最初の数セグメントをデバッグ出力
+              if (index < 3) {
+                console.log(`[downloadCaptions] Segment ${index}:`, {
+                  text: segmentData.text,
+                  start: segmentData.start,
+                  duration: segmentData.duration
                 });
               }
-            }
-          });
-        } else if (transcriptData.body?.initial_segments) {
-          // 新しいYouTube字幕構造パターン
-          transcriptData.body.initial_segments.forEach((segment: any) => {
-            if (segment.type === 'TranscriptSegment' && segment.snippet?.text) {
-              const startMs = parseInt(segment.start_ms);
-              const endMs = parseInt(segment.end_ms);
-              
-              if (!isNaN(startMs) && !isNaN(endMs)) {
-                segments.push({
-                  start: startMs / 1000,
-                  duration: (endMs - startMs) / 1000,
-                  text: cleanCaptionText(segment.snippet.text),
-                });
-              }
+            } catch (segmentError) {
+              console.warn(`[downloadCaptions] Error processing segment ${index}:`, segmentError);
             }
           });
         }
 
         console.log(`[downloadCaptions] Extracted ${segments.length} segments`);
         if (segments.length === 0) {
-          console.error(`[downloadCaptions] No segments found. Transcript keys:`, Object.keys(transcriptData));
-          console.error(`[downloadCaptions] Full transcript structure:`, JSON.stringify(transcriptData, null, 2));
+          console.error(`[downloadCaptions] No segments found. Transcript keys:`, Object.keys(transcript));
+          console.error(`[downloadCaptions] Full transcript structure:`, JSON.stringify(transcript, null, 2));
           throw new CaptionsNotAvailableError(videoId, normalizedLang, '字幕データが空です');
         }
 
@@ -463,16 +442,3 @@ export class WorkingYouTubeClient {
 
 // デフォルトのYouTubeクライアントインスタンス（動作版）
 export const workingYouTubeClient = new WorkingYouTubeClient();
-
-// 新しいトランスクリプト関数
-export async function formatTranscript(rawTranscript: RawTranscript): Promise<FormattedTranscriptSegment[]> {
-  const segments = rawTranscript.transcript.content.body.initial_segments
-    .filter((segment: RawTranscriptSegment) => segment.type === 'TranscriptSegment')
-    .map((segment: RawTranscriptSegment) => ({
-      text: segment.snippet.text,
-      start: parseInt(segment.start_ms) / 1000,
-      duration: (parseInt(segment.end_ms) - parseInt(segment.start_ms)) / 1000,
-    }));
-
-  return segments;
-}
