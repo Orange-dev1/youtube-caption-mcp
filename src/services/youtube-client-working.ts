@@ -174,11 +174,14 @@ export class WorkingYouTubeClient {
     language: string = 'ja',
     format: 'raw' | 'srt' | 'vtt' = 'raw'
   ): Promise<CaptionsData> {
+    console.log(`[downloadCaptions] Starting download for videoId: ${videoId}, language: ${language}`);
     try {
       const yt = await this.ensureInitialized();
       const normalizedLang = normalizeLanguageCode(language);
+      console.log(`[downloadCaptions] Normalized language: ${normalizedLang}`);
 
       const info = await yt.getInfo(videoId);
+      console.log(`[downloadCaptions] Got video info, captions available: ${!!info.captions}`);
 
       if (!info.captions) {
         throw new CaptionsNotAvailableError(videoId, normalizedLang, 'この動画には字幕が存在しません');
@@ -186,6 +189,10 @@ export class WorkingYouTubeClient {
 
       // 指定された言語の字幕トラックを検索
       const captionTracks = (info.captions as any).caption_tracks;
+      console.log(`[downloadCaptions] Caption tracks found: ${captionTracks?.length || 0}`);
+      if (captionTracks?.length > 0) {
+        console.log(`[downloadCaptions] Available languages: ${captionTracks.map((t: any) => t.language_code).join(', ')}`);
+      }
       if (!captionTracks) {
         throw new CaptionsNotAvailableError(videoId, normalizedLang, 'この動画には字幕が存在しません');
       }
@@ -193,12 +200,15 @@ export class WorkingYouTubeClient {
       let targetTrack = captionTracks.find((track: any) => 
         track.language_code === normalizedLang
       );
+      console.log(`[downloadCaptions] Exact match for ${normalizedLang}: ${!!targetTrack}`);
 
       // 完全一致しない場合、部分一致を試す
       if (!targetTrack) {
+        const langPrefix = normalizedLang.split('-')[0];
         targetTrack = captionTracks.find((track: any) => 
-          track.language_code?.startsWith(normalizedLang.split('-')[0])
+          langPrefix && track.language_code?.startsWith(langPrefix)
         );
+        console.log(`[downloadCaptions] Partial match for ${langPrefix}: ${!!targetTrack}`);
       }
 
       // それでも見つからない場合、デフォルト言語を試す
@@ -206,15 +216,21 @@ export class WorkingYouTubeClient {
         targetTrack = captionTracks.find((track: any) => 
           track.language_code === 'ja' || track.language_code?.startsWith('ja')
         );
+        console.log(`[downloadCaptions] Fallback to Japanese: ${!!targetTrack}`);
       }
 
       if (!targetTrack) {
+        console.log(`[downloadCaptions] No suitable track found for language: ${normalizedLang}`);
         throw new CaptionsNotAvailableError(videoId, normalizedLang, `指定された言語(${normalizedLang})の字幕が見つかりません`);
       }
 
+      console.log(`[downloadCaptions] Selected track: ${targetTrack.language_code}, kind: ${targetTrack.kind}`);
+
       // 字幕データを取得
       try {
+        console.log(`[downloadCaptions] Attempting to get transcript...`);
         const transcript = await info.getTranscript();
+        console.log(`[downloadCaptions] Transcript received: ${!!transcript}`);
         if (!transcript) {
           throw new CaptionsNotAvailableError(videoId, normalizedLang, '字幕データの取得に失敗しました');
         }
@@ -226,7 +242,8 @@ export class WorkingYouTubeClient {
         const transcriptData = transcript as any;
         
         // デバッグ用: transcript の構造をログ出力
-        console.log('Transcript structure:', JSON.stringify(transcriptData, null, 2).substring(0, 500));
+        console.log(`[downloadCaptions] Transcript structure keys:`, Object.keys(transcriptData));
+        console.log(`[downloadCaptions] Transcript structure (first 500 chars):`, JSON.stringify(transcriptData, null, 2).substring(0, 500));
         
         // より多くのパターンを試す
         if (transcriptData.content?.body?.initial_segments) {
@@ -299,8 +316,10 @@ export class WorkingYouTubeClient {
           });
         }
 
+        console.log(`[downloadCaptions] Extracted ${segments.length} segments`);
         if (segments.length === 0) {
-          console.error('No segments found. Transcript keys:', Object.keys(transcriptData));
+          console.error(`[downloadCaptions] No segments found. Transcript keys:`, Object.keys(transcriptData));
+          console.error(`[downloadCaptions] Full transcript structure:`, JSON.stringify(transcriptData, null, 2));
           throw new CaptionsNotAvailableError(videoId, normalizedLang, '字幕データが空です');
         }
 
@@ -312,7 +331,7 @@ export class WorkingYouTubeClient {
           segments,
         };
       } catch (transcriptError) {
-        console.error('Error getting transcript:', transcriptError);
+        console.error(`[downloadCaptions] Error getting transcript:`, transcriptError);
         throw new CaptionsNotAvailableError(videoId, normalizedLang, '字幕データの取得に失敗しました');
       }
     } catch (error) {
@@ -376,9 +395,10 @@ export class WorkingYouTubeClient {
           let includeCaptions = captionsList.availableCaptions;
           if (language != null && language.trim()) {
             const normalizedLang = normalizeLanguageCode(language.trim());
+            const langPrefix = normalizedLang.split('-')[0];
             includeCaptions = captionsList.availableCaptions.filter(caption =>
               caption.languageCode === normalizedLang ||
-              caption.languageCode.startsWith(normalizedLang.split('-')[0])
+              (langPrefix && caption.languageCode.startsWith(langPrefix))
             );
           }
 
