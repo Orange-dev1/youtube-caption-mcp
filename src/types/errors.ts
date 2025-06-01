@@ -55,10 +55,10 @@ export class VideoNotFoundError extends YouTubeError {
 }
 
 export class CaptionsNotAvailableError extends YouTubeError {
-  constructor(videoId: string, language?: string) {
+  constructor(videoId: string, language?: string, customMessage?: string) {
     super(
       'CAPTIONS_NOT_AVAILABLE',
-      '指定された動画に字幕が存在しません',
+      customMessage || '指定された動画に字幕が存在しません',
       { videoId, language },
       '他の言語の字幕が利用可能か確認してください'
     );
