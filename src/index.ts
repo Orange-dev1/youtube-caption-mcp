@@ -4,6 +4,13 @@ import { YouTubeCaptionMCPServer } from './server.js';
 
 async function main() {
   try {
+    // Check if --stdio flag is present
+    const isStdioMode = process.argv.includes('--stdio');
+    if (!isStdioMode) {
+      console.error('This MCP server must be run with --stdio flag');
+      process.exit(1);
+    }
+
     const server = new YouTubeCaptionMCPServer();
     await server.run();
   } catch (error) {
