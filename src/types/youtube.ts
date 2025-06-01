@@ -52,3 +52,34 @@ export interface SearchResponse {
   results: SearchResult[];
   totalCount: number;
 }
+
+// 新しいトランスクリプト関連の型定義
+export interface RawTranscriptSegment {
+  type: string;
+  start_ms: string;
+  end_ms: string;
+  snippet: {
+    text: string;
+  };
+}
+
+export interface RawTranscript {
+  transcript: {
+    content: {
+      body: {
+        initial_segments: RawTranscriptSegment[];
+      };
+    };
+  };
+}
+
+
+export interface FormattedTranscriptSegment {
+  text: string;
+  start: number;
+  duration: number;
+}
+
+export interface FormattedTranscript {
+  segments: FormattedTranscriptSegment[];
+}

@@ -7,6 +7,9 @@ import type {
   CaptionsData,
   SearchResult,
   SearchResponse,
+  RawTranscript,
+  RawTranscriptSegment,
+  FormattedTranscriptSegment,
 } from '../types/youtube.js';
 import {
   VideoNotFoundError,
@@ -174,11 +177,9 @@ export class WorkingYouTubeClient {
     language: string = 'ja',
     format: 'raw' | 'srt' | 'vtt' = 'raw'
   ): Promise<CaptionsData> {
-    console.log(`[downloadCaptions] Starting download for videoId: ${videoId}, language: ${language}`);
     try {
       const yt = await this.ensureInitialized();
       const normalizedLang = normalizeLanguageCode(language);
-      console.log(`[downloadCaptions] Normalized language: ${normalizedLang}`);
 
       const info = await yt.getInfo(videoId);
       console.log(`[downloadCaptions] Got video info, captions available: ${!!info.captions}`);
@@ -241,9 +242,12 @@ export class WorkingYouTubeClient {
         // transcript の構造を確認して適切にアクセス（型アサーションを使用）
         const transcriptData = transcript as any;
         
-        // デバッグ用: transcript の構造をログ出力
-        console.log(`[downloadCaptions] Transcript structure keys:`, Object.keys(transcriptData));
-        console.log(`[downloadCaptions] Transcript structure (first 500 chars):`, JSON.stringify(transcriptData, null, 2).substring(0, 500));
+        // デバッグ用: transcript の構造をより詳細にログ出力
+        console.log(`[downloadCaptions] Transcript body structure:`, transcriptData.body ? 'exists' : 'not exists');
+        if (transcriptData.body?.initial_segments) {
+          console.log(`[downloadCaptions] Initial segments count:`, transcriptData.body.initial_segments.length);
+          console.log(`[downloadCaptions] First segment sample:`, JSON.stringify(transcriptData.body.initial_segments[0], null, 2));
+        }
         
         // より多くのパターンを試す
         if (transcriptData.content?.body?.initial_segments) {
@@ -310,6 +314,22 @@ export class WorkingYouTubeClient {
                   start: parseInt(startMs) / 1000,
                   duration: (parseInt(endMs) - parseInt(startMs)) / 1000,
                   text: cleanCaptionText(text),
+                });
+              }
+            }
+          });
+        } else if (transcriptData.body?.initial_segments) {
+          // 新しいYouTube字幕構造パターン
+          transcriptData.body.initial_segments.forEach((segment: any) => {
+            if (segment.type === 'TranscriptSegment' && segment.snippet?.text) {
+              const startMs = parseInt(segment.start_ms);
+              const endMs = parseInt(segment.end_ms);
+              
+              if (!isNaN(startMs) && !isNaN(endMs)) {
+                segments.push({
+                  start: startMs / 1000,
+                  duration: (endMs - startMs) / 1000,
+                  text: cleanCaptionText(segment.snippet.text),
                 });
               }
             }
@@ -443,3 +463,16 @@ export class WorkingYouTubeClient {
 
 // デフォルトのYouTubeクライアントインスタンス（動作版）
 export const workingYouTubeClient = new WorkingYouTubeClient();
+
+// 新しいトランスクリプト関数
+export async function formatTranscript(rawTranscript: RawTranscript): Promise<FormattedTranscriptSegment[]> {
+  const segments = rawTranscript.transcript.content.body.initial_segments
+    .filter((segment: RawTranscriptSegment) => segment.type === 'TranscriptSegment')
+    .map((segment: RawTranscriptSegment) => ({
+      text: segment.snippet.text,
+      start: parseInt(segment.start_ms) / 1000,
+      duration: (parseInt(segment.end_ms) - parseInt(segment.start_ms)) / 1000,
+    }));
+
+  return segments;
+}
