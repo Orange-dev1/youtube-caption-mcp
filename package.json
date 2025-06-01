@@ -1,12 +1,10 @@
 {
-  "name": "youtube-caption-mcp",
-  "version": "0.1.0",
+  "name": "@iamyosuke/youtube-caption-mcp",
+  "version": "0.1.2",
   "description": "YouTube字幕取得MCPサーバー - Claude Desktop向けYouTube動画字幕情報取得ツール",
   "type": "module",
   "main": "dist/index.js",
-  "bin": {
-    "youtube-caption-mcp": "dist/index.js"
-  },
+  "bin": "./dist/index.js",
   "scripts": {
     "dev": "tsx src/index.ts",
     "build": "tsup",
@@ -28,7 +26,7 @@
     "claude",
     "typescript"
   ],
-  "author": "YouTube Caption MCP",
+  "author": "iamyosuke",
   "license": "MIT",
   "engines": {
     "node": ">=18.0.0"
@@ -60,10 +58,10 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/youtube-caption-mcp/youtube-caption-mcp.git"
+    "url": "https://github.com/iamyosuke/youtube-caption-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/youtube-caption-mcp/youtube-caption-mcp/issues"
+    "url": "https://github.com/iamyosuke/youtube-caption-mcp/issues"
   },
-  "homepage": "https://github.com/youtube-caption-mcp/youtube-caption-mcp#readme"
+  "homepage": "https://github.com/iamyosuke/youtube-caption-mcp#readme"
 }

@@ -15,13 +15,13 @@ Claude Desktop向けのYouTube動画字幕取得MCPサーバーです。APIキ�
 ### NPMからインストール
 
 ```bash
-npm install -g youtube-caption-mcp
+npm install -g @iamyosuke/youtube-caption-mcp
 ```
 
 ### ソースからビルド
 
 ```bash
-git clone https://github.com/youtube-caption-mcp/youtube-caption-mcp.git
+git clone https://github.com/iamyosuke/youtube-caption-mcp.git
 cd youtube-caption-mcp
 npm install
 npm run build
@@ -34,9 +34,9 @@ Claude Desktopの設定ファイル（`claude_desktop_config.json`）に以下�
 ```json
 {
   "mcpServers": {
-    "youtube-caption": {
+    "youtube": {
       "command": "npx",
-      "args": ["youtube-caption-mcp"],
+      "args": ["@iamyosuke/youtube-caption-mcp"],
       "env": {
         "CACHE_ENABLED": "true",
         "LOG_LEVEL": "info"
@@ -198,4 +198,4 @@ MIT License
 詳細なログを確認するには、環境変数 `LOG_LEVEL=debug` を設定してください。
 
 ```bash
-LOG_LEVEL=debug npx youtube-caption-mcp
+LOG_LEVEL=debug npx @iamyosuke/youtube-caption-mcp
