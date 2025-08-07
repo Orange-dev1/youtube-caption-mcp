@@ -19,7 +19,7 @@ async function main() {
   }
 }
 
-// プロセス終了時のクリーンアップ
+// Cleanup on process exit
 process.on('uncaughtException', (error) => {
   console.error('Uncaught Exception:', error);
   process.exit(1);

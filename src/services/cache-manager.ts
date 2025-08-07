@@ -15,9 +15,9 @@ export class CacheManager {
   constructor(config: Partial<CacheConfig> = {}) {
     this.config = {
       enabled: true,
-      defaultTTL: 3600, // 1時間
+      defaultTTL: 3600, // 1 hour
       maxKeys: 1000,
-      checkPeriod: 600, // 10分
+      checkPeriod: 600, // 10 minutes
       ...config,
     };
 
@@ -28,7 +28,7 @@ export class CacheManager {
       useClones: false,
     });
 
-    // キャッシュイベントのログ
+    // Cache event logging
     this.cache.on('set', (key, value) => {
       // Cache SET: ${key}
     });
@@ -42,7 +42,7 @@ export class CacheManager {
     });
   }
 
-  // キャッシュからデータを取得
+  // Get data from cache
   get<T>(key: string): T | undefined {
     if (!this.config.enabled) {
       return undefined;
@@ -58,14 +58,14 @@ export class CacheManager {
       return value;
     } catch (error) {
       console.error(`Cache GET error for key ${key}:`, error);
-      throw new CacheError(`キャッシュからの取得に失敗しました: ${key}`, {
+      throw new CacheError(`Failed to retrieve from cache: ${key}`, {
         key,
         error: error instanceof Error ? error.message : String(error),
       });
     }
   }
 
-  // キャッシュにデータを保存
+  // Save data to cache
   set<T>(key: string, value: T, ttl?: number): boolean {
     if (!this.config.enabled) {
       return false;
@@ -81,14 +81,14 @@ export class CacheManager {
       return success;
     } catch (error) {
       console.error(`Cache SET error for key ${key}:`, error);
-      throw new CacheError(`キャッシュへの保存に失敗しました: ${key}`, {
+      throw new CacheError(`Failed to save to cache: ${key}`, {
         key,
         error: error instanceof Error ? error.message : String(error),
       });
     }
   }
 
-  // キャッシュからデータを削除
+  // Delete data from cache
   del(key: string): number {
     if (!this.config.enabled) {
       return 0;
@@ -100,27 +100,27 @@ export class CacheManager {
       return deleted;
     } catch (error) {
       console.error(`Cache DEL error for key ${key}:`, error);
-      throw new CacheError(`キャッシュからの削除に失敗しました: ${key}`, {
+      throw new CacheError(`Failed to delete from cache: ${key}`, {
         key,
         error: error instanceof Error ? error.message : String(error),
       });
     }
   }
 
-  // キャッシュをクリア
+  // Clear cache
   clear(): void {
     try {
       this.cache.flushAll();
       // Cache cleared
     } catch (error) {
       console.error('Cache clear error:', error);
-      throw new CacheError('キャッシュのクリアに失敗しました', {
+      throw new CacheError('Failed to clear cache', {
         error: error instanceof Error ? error.message : String(error),
       });
     }
   }
 
-  // キャッシュの統計情報を取得
+  // Get cache statistics
   getStats() {
     return {
       keys: this.cache.keys().length,
@@ -131,42 +131,42 @@ export class CacheManager {
     };
   }
 
-  // キャッシュキーの生成
+  // Generate cache key
   static generateKey(prefix: string, ...parts: (string | number)[]): string {
     return `${prefix}:${parts.join(':')}`;
   }
 
-  // 動画情報用のキャッシュキー
+  // Cache key for video info
   static videoInfoKey(videoId: string): string {
     return this.generateKey('video_info', videoId);
   }
 
-  // 字幕一覧用のキャッシュキー
+  // Cache key for captions list
   static captionsListKey(videoId: string): string {
     return this.generateKey('captions_list', videoId);
   }
 
-  // 字幕データ用のキャッシュキー
+  // Cache key for captions data
   static captionsDataKey(videoId: string, lang: string, format: string): string {
     return this.generateKey('captions', videoId, lang, format);
   }
 
-  // 検索結果用のキャッシュキー
+  // Cache key for search results
   static searchKey(query: string, lang?: string): string {
     const queryHash = Buffer.from(query).toString('base64').substring(0, 16);
     return this.generateKey('search', queryHash, lang ?? 'all');
   }
 
-  // TTL設定の定数
+  // TTL constants
   static readonly TTL = {
-    VIDEO_INFO: 3600, // 1時間
-    CAPTIONS_LIST: 86400, // 24時間
-    CAPTIONS_DATA: 86400, // 24時間
-    SEARCH_RESULTS: 1800, // 30分
+    VIDEO_INFO: 3600, // 1 hour
+    CAPTIONS_LIST: 86400, // 24 hours
+    CAPTIONS_DATA: 86400, // 24 hours
+    SEARCH_RESULTS: 1800, // 30 minutes
   } as const;
 }
 
-// デフォルトのキャッシュマネージャーインスタンス
+// Default cache manager instance
 export const defaultCacheManager = new CacheManager({
   enabled: process.env.CACHE_ENABLED !== 'false',
   defaultTTL: parseInt(process.env.CACHE_DEFAULT_TTL || '3600'),

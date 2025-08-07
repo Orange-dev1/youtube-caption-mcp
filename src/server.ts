@@ -33,71 +33,71 @@ export class YouTubeCaptionMCPServer {
         capabilities: {
           tools: {
             get_video_info: {
-              description: 'YouTube動画の基本情報を取得します',
+              description: 'Get basic information of a YouTube video',
               inputSchema: {
                 type: 'object',
                 properties: {
                   video_id: {
                     type: 'string',
-                    description: 'YouTube動画IDまたはURL',
+                    description: 'YouTube video ID or URL',
                   },
                 },
                 required: ['video_id'],
               },
             },
             get_captions_list: {
-              description: '動画で利用可能な字幕一覧を取得します',
+              description: 'Get list of available captions for a video',
               inputSchema: {
                 type: 'object',
                 properties: {
                   video_id: {
                     type: 'string',
-                    description: 'YouTube動画IDまたはURL',
+                    description: 'YouTube video ID or URL',
                   },
                 },
                 required: ['video_id'],
               },
             },
             download_captions: {
-              description: '指定された動画の字幕をダウンロードします',
+              description: 'Download captions for the specified video',
               inputSchema: {
                 type: 'object',
                 properties: {
                   video_id: {
                     type: 'string',
-                    description: 'YouTube動画IDまたはURL',
+                    description: 'YouTube video ID or URL',
                   },
                   lang: {
                     type: 'string',
-                    description: '字幕の言語コード（例: ja, en）',
-                    default: 'ja',
+                    description: 'Caption language code (e.g., ja, en)',
+                    default: 'en',
                   },
                   format: {
                     type: 'string',
                     enum: ['raw', 'srt', 'vtt'],
-                    description: '字幕の出力形式',
+                    description: 'Caption output format',
                     default: 'raw',
                   },
                 },
-                required: ['video_id'],
+                required: ['video_id', 'lang'],
               },
             },
             search_videos_with_captions: {
-              description: '字幕付きの動画を検索します',
+              description: 'Search for videos with captions',
               inputSchema: {
                 type: 'object',
                 properties: {
                   query: {
                     type: 'string',
-                    description: '検索クエリ',
+                    description: 'Search query',
                   },
                   lang: {
                     type: 'string',
-                    description: '字幕の言語フィルタ（例: ja, en）',
+                    description: 'Caption language filter (e.g., ja, en)',
                   },
                   limit: {
                     type: 'number',
-                    description: '検索結果の最大数',
+                    description: 'Maximum number of search results',
                     minimum: 1,
                     maximum: 50,
                     default: 10,
@@ -119,19 +119,19 @@ export class YouTubeCaptionMCPServer {
   }
 
   private setupToolHandlers() {
-    // ツール一覧の提供
+    // Provide list of tools
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
       return {
         tools: [
           {
             name: 'get_video_info',
-            description: 'YouTube動画の基本情報を取得します',
+            description: 'Get basic information of a YouTube video',
             inputSchema: {
               type: 'object',
               properties: {
                 video_id: {
                   type: 'string',
-                  description: 'YouTube動画IDまたはURL',
+                  description: 'YouTube video ID or URL',
                 },
               },
               required: ['video_id'],
@@ -139,13 +139,13 @@ export class YouTubeCaptionMCPServer {
           },
           {
             name: 'get_captions_list',
-            description: '動画で利用可能な字幕一覧を取得します',
+            description: 'Get list of available captions for a video',
             inputSchema: {
               type: 'object',
               properties: {
                 video_id: {
                   type: 'string',
-                  description: 'YouTube動画IDまたはURL',
+                  description: 'YouTube video ID or URL',
                 },
               },
               required: ['video_id'],
@@ -153,46 +153,45 @@ export class YouTubeCaptionMCPServer {
           },
           {
             name: 'download_captions',
-            description: '指定された動画の字幕をダウンロードします',
+            description: 'Download captions for the specified video',
             inputSchema: {
               type: 'object',
               properties: {
                 video_id: {
                   type: 'string',
-                  description: 'YouTube動画IDまたはURL',
+                  description: 'YouTube video ID or URL',
                 },
                 lang: {
                   type: 'string',
-                  description: '字幕の言語コード（例: ja, en）',
-                  default: 'ja',
+                  description: 'Caption language code (e.g., ja, en)',
                 },
                 format: {
                   type: 'string',
                   enum: ['raw', 'srt', 'vtt'],
-                  description: '字幕の出力形式',
+                  description: 'Caption output format',
                   default: 'raw',
                 },
               },
-              required: ['video_id'],
+              required: ['video_id', 'lang'],
             },
           },
           {
             name: 'search_videos_with_captions',
-            description: '字幕付きの動画を検索します',
+            description: 'Search for videos with captions',
             inputSchema: {
               type: 'object',
               properties: {
                 query: {
                   type: 'string',
-                  description: '検索クエリ',
+                  description: 'Search query',
                 },
                 lang: {
                   type: 'string',
-                  description: '字幕の言語フィルタ（例: ja, en）',
+                  description: 'Caption language filter (e.g., ja, en)',
                 },
                 limit: {
                   type: 'number',
-                  description: '検索結果の最大数',
+                  description: 'Maximum number of search results',
                   minimum: 1,
                   maximum: 50,
                   default: 10,
@@ -205,7 +204,7 @@ export class YouTubeCaptionMCPServer {
       };
     });
 
-    // ツール実行ハンドラー
+    // Tool execution handler
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
 
@@ -242,7 +241,7 @@ export class YouTubeCaptionMCPServer {
   private async handleGetVideoInfo(args: unknown) {
     const { video_id } = validateRequest(GetVideoInfoRequestSchema, args);
     
-    // キャッシュチェック
+    // Check cache
     const cacheKey = CacheManager.videoInfoKey(video_id);
     const cached = this.cacheManager.get(cacheKey);
     if (cached) {
@@ -256,10 +255,10 @@ export class YouTubeCaptionMCPServer {
       };
     }
 
-    // YouTube APIから取得
+    // Get from YouTube API
     const videoInfo = await this.youtubeClient.getVideoInfo(video_id);
     
-    // キャッシュに保存
+    // Save to cache
     this.cacheManager.set(cacheKey, videoInfo, CacheManager.TTL.VIDEO_INFO);
 
     return {
@@ -275,7 +274,7 @@ export class YouTubeCaptionMCPServer {
   private async handleGetCaptionsList(args: unknown) {
     const { video_id } = validateRequest(GetCaptionsListRequestSchema, args);
     
-    // キャッシュチェック
+    // Check cache
     const cacheKey = CacheManager.captionsListKey(video_id);
     const cached = this.cacheManager.get(cacheKey);
     if (cached) {
@@ -289,10 +288,10 @@ export class YouTubeCaptionMCPServer {
       };
     }
 
-    // YouTube APIから取得
+    // Get from YouTube API
     const captionsList = await this.youtubeClient.getCaptionsList(video_id);
     
-    // キャッシュに保存
+    // Save to cache
     this.cacheManager.set(cacheKey, captionsList, CacheManager.TTL.CAPTIONS_LIST);
 
     return {
@@ -306,9 +305,9 @@ export class YouTubeCaptionMCPServer {
   }
 
   private async handleDownloadCaptions(args: unknown) {
-    const { video_id, lang = 'ja', format = 'raw' } = validateRequest(DownloadCaptionsRequestSchema, args);
+    const { video_id, lang, format = 'raw' } = validateRequest(DownloadCaptionsRequestSchema, args);
     
-    // キャッシュチェック
+    // Check cache
     const cacheKey = CacheManager.captionsDataKey(video_id, lang, format);
     const cached = this.cacheManager.get(cacheKey);
     if (cached) {
@@ -322,13 +321,13 @@ export class YouTubeCaptionMCPServer {
       };
     }
 
-    // YouTube APIから取得
+    // Get from YouTube API
     const captionsData = await this.youtubeClient.downloadCaptions(video_id, lang, format);
     
-    // フォーマット変換を適用
+    // Apply format conversion
     const formattedCaptions = CaptionParser.formatCaptions(captionsData);
     
-    // キャッシュに保存
+    // Save to cache
     this.cacheManager.set(cacheKey, formattedCaptions, CacheManager.TTL.CAPTIONS_DATA);
 
     return {
@@ -344,7 +343,7 @@ export class YouTubeCaptionMCPServer {
   private async handleSearchVideos(args: unknown) {
     const { query, lang, limit } = validateRequest(SearchVideosRequestSchema, args);
     
-    // キャッシュチェック
+    // Check cache
     const cacheKey = CacheManager.searchKey(query, lang);
     const cached = this.cacheManager.get(cacheKey);
     if (cached) {
@@ -358,10 +357,10 @@ export class YouTubeCaptionMCPServer {
       };
     }
 
-    // YouTube APIから取得
+    // Get from YouTube API
     const searchResults = await this.youtubeClient.searchVideosWithCaptions(query, lang, limit);
     
-    // キャッシュに保存
+    // Save to cache
     this.cacheManager.set(cacheKey, searchResults, CacheManager.TTL.SEARCH_RESULTS);
 
     return {

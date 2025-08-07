@@ -31,12 +31,12 @@ export class WorkingYouTubeClient {
 
   private async initialize(): Promise<void> {
     try {
-      // YouTubeクライアントの初期化時にパーサーエラーを抑制
+      // Suppress parser errors during YouTube client initialization
       const consoleError = console.error;
       console.error = (...args: any[]) => {
         const message = args.join(' ');
         if (message.includes('[YOUTUBEJS][Parser]')) {
-          return; // パーサーエラーを抑制
+          return; // Suppress parser errors
         }
         consoleError.apply(console, args);
       };
@@ -47,11 +47,11 @@ export class WorkingYouTubeClient {
         enable_session_cache: false,
       });
 
-      // console.errorを元に戻す
+      // Restore console.error
       console.error = consoleError;
     } catch (error) {
       console.error('Failed to initialize YouTube client:', error);
-      throw new SystemError('YouTubeクライアントの初期化に失敗しました', {
+      throw new SystemError('Failed to initialize YouTube client', {
         error: error instanceof Error ? error.message : String(error),
       });
     }
@@ -64,13 +64,13 @@ export class WorkingYouTubeClient {
     }
 
     if (!this.innertube) {
-      throw new SystemError('YouTubeクライアントが初期化されていません');
+      throw new SystemError('YouTube client is not initialized');
     }
 
     return this.innertube;
   }
 
-  // 動画情報を取得
+  // Get video information
   async getVideoInfo(videoId: string): Promise<VideoInfo> {
     try {
       const yt = await this.ensureInitialized();
@@ -83,17 +83,17 @@ export class WorkingYouTubeClient {
 
       const basicInfo = info.basic_info as any;
 
-      // 動画が利用できない場合のチェック
+      // Check if video is unavailable
       if (basicInfo.is_private) {
         throw new AccessDeniedError(videoId);
       }
 
-      // 安全にプロパティにアクセス（型アサーションを使用）
+      // Safely access properties (using type assertion)
       const duration = basicInfo.duration?.seconds || basicInfo.duration || 0;
       const viewCount = basicInfo.view_count || 0;
-      const title = basicInfo.title || 'タイトル不明';
+      const title = basicInfo.title || 'Unknown Title';
       const description = basicInfo.short_description || '';
-      const channelName = basicInfo.channel?.name || basicInfo.author || 'チャンネル不明';
+      const channelName = basicInfo.channel?.name || basicInfo.author || 'Unknown Channel';
       const uploadDate = basicInfo.upload_date || basicInfo.publish_date || '';
       const thumbnails = basicInfo.thumbnail || [];
       const thumbnailUrl = Array.isArray(thumbnails) && thumbnails.length > 0 ? thumbnails[0].url : '';
@@ -117,20 +117,20 @@ export class WorkingYouTubeClient {
       console.error(`Error getting video info for ${videoId}:`, error);
       
       if (error instanceof Error && error.message.includes('network')) {
-        throw new NetworkError('ネットワークエラーが発生しました', {
+        throw new NetworkError('Network error occurred', {
           videoId,
           error: error.message,
         });
       }
 
-      throw new SystemError('動画情報の取得に失敗しました', {
+      throw new SystemError('Failed to get video information', {
         videoId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
   }
 
-  // 利用可能な字幕一覧を取得
+  // Get list of available captions
   async getCaptionsList(videoId: string): Promise<CaptionsList> {
     try {
       const yt = await this.ensureInitialized();
@@ -138,12 +138,12 @@ export class WorkingYouTubeClient {
       const info = await yt.getInfo(videoId);
 
       if (!info.captions) {
-        throw new CaptionsNotAvailableError(videoId, undefined, 'この動画には字幕が存在しません');
+        throw new CaptionsNotAvailableError(videoId, undefined, 'No captions exist for this video');
       }
 
       const captionTracks = (info.captions as any).caption_tracks;
       if (!captionTracks || captionTracks.length === 0) {
-        throw new CaptionsNotAvailableError(videoId, undefined, 'この動画には字幕が存在しません');
+        throw new CaptionsNotAvailableError(videoId, undefined, 'No captions exist for this video');
       }
 
       const availableCaptions: CaptionTrack[] = captionTracks.map((track: any) => ({
@@ -164,14 +164,14 @@ export class WorkingYouTubeClient {
       }
 
       console.error(`Error getting captions list for ${videoId}:`, error);
-      throw new SystemError('字幕一覧の取得に失敗しました', {
+      throw new SystemError('Failed to get captions list', {
         videoId,
         error: error instanceof Error ? error.message : String(error),
       });
     }
   }
 
-  // 字幕データをダウンロード
+  // Download caption data
   async downloadCaptions(
     videoId: string,
     language: string = 'ja',
@@ -185,17 +185,17 @@ export class WorkingYouTubeClient {
       console.log(`[downloadCaptions] Got video info, captions available: ${!!info.captions}`);
 
       if (!info.captions) {
-        throw new CaptionsNotAvailableError(videoId, normalizedLang, 'この動画には字幕が存在しません');
+        throw new CaptionsNotAvailableError(videoId, normalizedLang, 'No captions exist for this video');
       }
 
-      // 指定された言語の字幕トラックを検索
+      // Search for caption track in specified language
       const captionTracks = (info.captions as any).caption_tracks;
       console.log(`[downloadCaptions] Caption tracks found: ${captionTracks?.length || 0}`);
       if (captionTracks?.length > 0) {
         console.log(`[downloadCaptions] Available languages: ${captionTracks.map((t: any) => t.language_code).join(', ')}`);
       }
       if (!captionTracks) {
-        throw new CaptionsNotAvailableError(videoId, normalizedLang, 'この動画には字幕が存在しません');
+        throw new CaptionsNotAvailableError(videoId, normalizedLang, 'No captions exist for this video');
       }
 
       let targetTrack = captionTracks.find((track: any) => 
@@ -203,7 +203,7 @@ export class WorkingYouTubeClient {
       );
       console.log(`[downloadCaptions] Exact match for ${normalizedLang}: ${!!targetTrack}`);
 
-      // 完全一致しない場合、部分一致を試す
+      // If no exact match, try partial match
       if (!targetTrack) {
         const langPrefix = normalizedLang.split('-')[0];
         targetTrack = captionTracks.find((track: any) => 
@@ -212,7 +212,7 @@ export class WorkingYouTubeClient {
         console.log(`[downloadCaptions] Partial match for ${langPrefix}: ${!!targetTrack}`);
       }
 
-      // それでも見つからない場合、デフォルト言語を試す
+      // If still not found, try default language
       if (!targetTrack && normalizedLang !== 'ja') {
         targetTrack = captionTracks.find((track: any) => 
           track.language_code === 'ja' || track.language_code?.startsWith('ja')
@@ -222,34 +222,34 @@ export class WorkingYouTubeClient {
 
       if (!targetTrack) {
         console.log(`[downloadCaptions] No suitable track found for language: ${normalizedLang}`);
-        throw new CaptionsNotAvailableError(videoId, normalizedLang, `指定された言語(${normalizedLang})の字幕が見つかりません`);
+        throw new CaptionsNotAvailableError(videoId, normalizedLang, `Captions for specified language (${normalizedLang}) not found`);
       }
 
       console.log(`[downloadCaptions] Selected track: ${targetTrack.language_code}, kind: ${targetTrack.kind}`);
 
-      // 字幕データを取得
+      // Get caption data
       try {
         console.log(`[downloadCaptions] Attempting to get transcript...`);
         const transcript = await info.getTranscript();
         console.log(`[downloadCaptions] Transcript received: ${!!transcript}`);
         if (!transcript) {
-          throw new CaptionsNotAvailableError(videoId, normalizedLang, '字幕データの取得に失敗しました');
+          throw new CaptionsNotAvailableError(videoId, normalizedLang, 'Failed to get caption data');
         }
 
-        // デバッグ用: transcript の構造をより詳細にログ出力
+        // Debug: Log transcript structure in more detail
         console.log(`[downloadCaptions] Transcript body structure:`, transcript as any ? 'exists' : 'not exists');
         if ((transcript as any)?.body?.initial_segments) {
           console.log(`[downloadCaptions] Initial segments count:`, (transcript as any)?.body.initial_segments.length);
           console.log(`[downloadCaptions] First segment sample:`, JSON.stringify((transcript as any)?.body.initial_segments[0], null, 2));
         }
         
-        // transcriptデータから直接セグメントを抽出
+        // Extract segments directly from transcript data
         let initialSegments: any[] = [];
         
-        // transcriptDataを適切に取得
+        // Get transcriptData appropriately
         const transcriptData = transcript as any;
         
-        // 複数の可能な構造をチェック
+        // Check multiple possible structures
         if (transcriptData?.transcript?.content?.body?.initial_segments) {
           initialSegments = transcriptData.transcript.content.body.initial_segments;
           console.log(`[downloadCaptions] Found segments in transcript.content.body.initial_segments: ${initialSegments.length}`);
@@ -270,28 +270,28 @@ export class WorkingYouTubeClient {
           console.error(`[downloadCaptions] Sample transcript data:`, JSON.stringify(transcriptData, null, 2).substring(0, 1000));
         }
         
-        // セグメントデータを適切なフォーマットに変換
+        // Convert segment data to appropriate format
         const segments: CaptionSegment[] = [];
         
         if (initialSegments && initialSegments.length > 0) {
           initialSegments.forEach((segment: any, index: number) => {
             try {
-              // セグメントタイプをチェック
+              // Check segment type
               if (segment.type !== 'TranscriptSegment') {
-                return; // TranscriptSegment以外はスキップ
+                return; // Skip non-TranscriptSegment
               }
               
-              // テキストを抽出（snippet.text から）
+              // Extract text (from snippet.text)
               const text = segment.snippet?.text || '';
               if (!text || !text.trim()) {
-                return; // 空のテキストはスキップ
+                return; // Skip empty text
               }
               
-              // 時間情報を抽出
+              // Extract timing information
               const startMs = parseInt(segment.start_ms || '0');
               const endMs = parseInt(segment.end_ms || segment.start_ms || '0');
               const start = startMs / 1000;
-              const duration = Math.max(0.1, (endMs - startMs) / 1000); // 最小0.1秒
+              const duration = Math.max(0.1, (endMs - startMs) / 1000); // Minimum 0.1 seconds
               
               const segmentData: CaptionSegment = {
                 text: cleanCaptionText(text),
@@ -301,7 +301,7 @@ export class WorkingYouTubeClient {
               
               segments.push(segmentData);
               
-              // 最初の数セグメントをデバッグ出力
+              // Debug output for first few segments
               if (index < 3) {
                 console.log(`[downloadCaptions] Segment ${index}:`, {
                   text: segmentData.text,
@@ -319,7 +319,7 @@ export class WorkingYouTubeClient {
         if (segments.length === 0) {
           console.error(`[downloadCaptions] No segments found. Transcript keys:`, Object.keys(transcript));
           console.error(`[downloadCaptions] Full transcript structure:`, JSON.stringify(transcript, null, 2));
-          throw new CaptionsNotAvailableError(videoId, normalizedLang, '字幕データが空です');
+          throw new CaptionsNotAvailableError(videoId, normalizedLang, 'Caption data is empty');
         }
 
         return {
@@ -331,7 +331,7 @@ export class WorkingYouTubeClient {
         };
       } catch (transcriptError) {
         console.error(`[downloadCaptions] Error getting transcript:`, transcriptError);
-        throw new CaptionsNotAvailableError(videoId, normalizedLang, '字幕データの取得に失敗しました');
+        throw new CaptionsNotAvailableError(videoId, normalizedLang, 'Failed to get caption data');
       }
     } catch (error) {
       if (error instanceof CaptionsNotAvailableError) {
@@ -339,7 +339,7 @@ export class WorkingYouTubeClient {
       }
 
       console.error(`Error downloading captions for ${videoId}:`, error);
-      throw new SystemError('字幕データのダウンロードに失敗しました', {
+      throw new SystemError('Failed to download caption data', {
         videoId,
         language,
         error: error instanceof Error ? error.message : String(error),
@@ -347,7 +347,7 @@ export class WorkingYouTubeClient {
     }
   }
 
-  // 字幕付き動画を検索
+  // Search for videos with captions
   async searchVideosWithCaptions(
     query: string,
     language?: string | null,
@@ -373,7 +373,7 @@ export class WorkingYouTubeClient {
 
       for (const video of videos) {
         try {
-          // 動画IDを安全に取得（型アサーションを使用）
+          // Safely get video ID (using type assertion)
           const videoData = video as any;
           let videoId: string;
           
@@ -384,13 +384,13 @@ export class WorkingYouTubeClient {
           } else if (videoData.basic_info?.id) {
             videoId = videoData.basic_info.id;
           } else {
-            continue; // IDが取得できない場合はスキップ
+            continue; // Skip if ID cannot be obtained
           }
 
-          // 各動画の字幕情報を取得
+          // Get caption information for each video
           const captionsList = await this.getCaptionsList(videoId);
           
-          // 指定された言語の字幕がある場合のみ結果に含める
+          // Only include results with captions in specified language
           let includeCaptions = captionsList.availableCaptions;
           if (language != null && language.trim()) {
             const normalizedLang = normalizeLanguageCode(language.trim());
@@ -402,8 +402,8 @@ export class WorkingYouTubeClient {
           }
 
           if (includeCaptions.length > 0) {
-            const title = videoData.title?.text || videoData.title || 'タイトル不明';
-            const channelName = videoData.author?.name || videoData.channel?.name || 'チャンネル不明';
+            const title = videoData.title?.text || videoData.title || 'Unknown Title';
+            const channelName = videoData.author?.name || videoData.channel?.name || 'Unknown Channel';
             const duration = videoData.duration?.seconds_total || videoData.duration?.seconds || 0;
             const thumbnails = videoData.thumbnails || [];
             const thumbnailUrl = Array.isArray(thumbnails) && thumbnails.length > 0 ? thumbnails[0].url : '';
@@ -418,7 +418,7 @@ export class WorkingYouTubeClient {
             });
           }
         } catch (error) {
-          // 個別の動画でエラーが発生しても検索全体は続行
+          // Continue search even if individual video has error
           if (!(error instanceof CaptionsNotAvailableError)) {
             console.warn(`Failed to get captions for video:`, error);
           }
@@ -432,7 +432,7 @@ export class WorkingYouTubeClient {
       };
     } catch (error) {
       console.error(`Error searching videos with captions:`, error);
-      throw new SystemError('字幕付き動画の検索に失敗しました', {
+      throw new SystemError('Failed to search videos with captions', {
         query,
         error: error instanceof Error ? error.message : String(error),
       });
@@ -440,5 +440,5 @@ export class WorkingYouTubeClient {
   }
 }
 
-// デフォルトのYouTubeクライアントインスタンス（動作版）
+// Default YouTube client instance (working version)
 export const workingYouTubeClient = new WorkingYouTubeClient();

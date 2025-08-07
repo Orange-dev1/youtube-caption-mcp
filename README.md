@@ -88,14 +88,14 @@ Downloads captions for a specified video.
 
 **Parameters:**
 - `video_id` (required): YouTube video ID or URL
-- `lang` (optional): Caption language code (default: "ja")
+- `lang` (required): Caption language code (e.g., "ja", "en")
 - `format` (optional): Output format - "raw", "srt", "vtt" (default: "raw")
 
 **Example:**
 ```json
 {
   "video_id": "dQw4w9WgXcQ",
-  "lang": "ja",
+  "lang": "en",
   "format": "srt"
 }
 ```
@@ -213,27 +213,27 @@ LOG_LEVEL=debug npx @iamyosuke/youtube-caption-mcp
 
 ---
 
-# YouTube字幕MCPサーバー
+# YouTube Caption MCP Server (Japanese)
 
-Cusor 向けのYouTube動画字幕取得MCPサーバーです。APIキー不要でYouTube動画の字幕情報を取得できます。
+A YouTube video caption retrieval MCP server for Cursor. Access YouTube video caption information without requiring an API key.
 
-## 特徴
+## Features
 
-- **APIキー不要**: youtube-jsライブラリを使用してYouTubeの内部APIにアクセス
-- **多言語対応**: 利用可能な字幕言語の自動検出と取得
-- **フォーマット変換**: Raw、SRT、VTT形式での字幕出力
-- **キャッシュ機能**: パフォーマンス向上のためのインメモリキャッシュ
-- **Claude統合**: MCPプロトコルによるシームレスな連携
+- **No API Key Required**: Access YouTube's internal API using the youtube-js library
+- **Multilingual Support**: Automatic detection and retrieval of available caption languages
+- **Format Conversion**: Caption output in Raw, SRT, and VTT formats
+- **Caching**: In-memory caching for improved performance
+- **Claude Integration**: Seamless integration via MCP protocol
 
-## インストール
+## Installation
 
-### NPMからインストール
+### Install from NPM
 
 ```bash
 npm install -g @iamyosuke/youtube-caption-mcp
 ```
 
-### ソースからビルド
+### Build from Source
 
 ```bash
 git clone https://github.com/iamyosuke/youtube-caption-mcp.git
@@ -243,9 +243,9 @@ npm run build
 ```
 
 
-### Cursor設定
+### Cursor Configuration
 
-Cursorの設定ファイル（`.cursor/mcp.json`）に以下を追加してください：
+Add the following to your Cursor configuration file (`.cursor/mcp.json`):
 
 ```json
 {
@@ -264,16 +264,16 @@ Cursorの設定ファイル（`.cursor/mcp.json`）に以下を追加してく�
 
 
 
-## 利用可能なツール
+## Available Tools
 
 ### 1. get_video_info
 
-YouTube動画の基本情報を取得します。
+Get basic information about a YouTube video.
 
-**パラメータ:**
-- `video_id` (必須): YouTube動画IDまたはURL
+**Parameters:**
+- `video_id` (required): YouTube video ID or URL
 
-**例:**
+**Example:**
 ```json
 {
   "video_id": "dQw4w9WgXcQ"
@@ -282,12 +282,12 @@ YouTube動画の基本情報を取得します。
 
 ### 2. get_captions_list
 
-動画で利用可能な字幕一覧を取得します。
+Get list of available captions for a video.
 
-**パラメータ:**
-- `video_id` (必須): YouTube動画IDまたはURL
+**Parameters:**
+- `video_id` (required): YouTube video ID or URL
 
-**例:**
+**Example:**
 ```json
 {
   "video_id": "dQw4w9WgXcQ"
@@ -296,128 +296,128 @@ YouTube動画の基本情報を取得します。
 
 ### 3. download_captions
 
-指定された動画の字幕をダウンロードします。
+Download captions for the specified video.
 
-**パラメータ:**
-- `video_id` (必須): YouTube動画IDまたはURL
-- `lang` (オプション): 字幕の言語コード（デフォルト: "ja"）
-- `format` (オプション): 出力形式 - "raw", "srt", "vtt"（デフォルト: "raw"）
+**Parameters:**
+- `video_id` (required): YouTube video ID or URL
+- `lang` (required): Caption language code (e.g., "ja", "en")
+- `format` (optional): Output format - "raw", "srt", "vtt" (default: "raw")
 
-**例:**
+**Example:**
 ```json
 {
   "video_id": "dQw4w9WgXcQ",
-  "lang": "ja",
+  "lang": "en",
   "format": "srt"
 }
 ```
 
 ### 4. search_videos_with_captions
 
-字幕付きの動画を検索します。
+Search for videos with captions.
 
-**パラメータ:**
-- `query` (必須): 検索クエリ
-- `lang` (オプション): 字幕の言語フィルタ
-- `limit` (オプション): 検索結果の最大数（1-50、デフォルト: 10）
+**Parameters:**
+- `query` (required): Search query
+- `lang` (optional): Caption language filter
+- `limit` (optional): Maximum number of search results (1-50, default: 10)
 
-**例:**
+**Example:**
 ```json
 {
-  "query": "プログラミング チュートリアル",
-  "lang": "ja",
+  "query": "programming tutorial",
+  "lang": "en",
   "limit": 5
 }
 ```
 
-## 対応URL形式
+## Supported URL Formats
 
-以下のYouTube URL形式に対応しています：
+The following YouTube URL formats are supported:
 
 - `https://www.youtube.com/watch?v=VIDEO_ID`
 - `https://youtu.be/VIDEO_ID`
 - `https://www.youtube.com/embed/VIDEO_ID`
-- `VIDEO_ID` (11文字の動画ID)
+- `VIDEO_ID` (11-character video ID)
 
-## 環境変数
+## Environment Variables
 
-| 変数名 | デフォルト値 | 説明 |
-|--------|-------------|------|
-| `CACHE_ENABLED` | `true` | キャッシュ機能の有効/無効 |
-| `CACHE_DEFAULT_TTL` | `3600` | デフォルトキャッシュ保持時間（秒） |
-| `CACHE_MAX_KEYS` | `1000` | 最大キャッシュキー数 |
-| `LOG_LEVEL` | `info` | ログレベル（debug, info, warn, error） |
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `CACHE_ENABLED` | `true` | Enable/disable caching |
+| `CACHE_DEFAULT_TTL` | `3600` | Default cache retention time (seconds) |
+| `CACHE_MAX_KEYS` | `1000` | Maximum number of cache keys |
+| `LOG_LEVEL` | `info` | Log level (debug, info, warn, error) |
 
-## 開発
+## Development
 
-### 開発環境のセットアップ
+### Development Environment Setup
 
 ```bash
 npm install
 ```
 
-### 開発サーバーの起動
+### Start Development Server
 
 ```bash
 npm run dev
 ```
 
-### テストの実行
+### Run Tests
 
 ```bash
 npm test
 ```
 
-### ビルド
+### Build
 
 ```bash
 npm run build
 ```
 
-### リント・フォーマット
+### Lint and Format
 
 ```bash
 npm run lint
 npm run format
 ```
 
-## ライセンス
+## License
 
 MIT License
 
-## 貢献
+## Contributing
 
-プルリクエストやイシューの報告を歓迎します。
+Pull requests and issue reports are welcome.
 
-## 免責事項
+## Disclaimer
 
-**注意**: このプロジェクトは週末の3時間で作成されたものであり、十分なテストが行われていません。本番環境での使用は自己責任でお願いします。
+**Note**: This project was created in 3 hours over a weekend and has not been thoroughly tested. Use in production at your own risk.
 
-## 注意事項
+## Notes
 
-- このツールはYouTubeの利用規約に従って使用してください
-- 著作権保護されたコンテンツの適切な取り扱いにご注意ください
-- 大量のリクエストを送信する際は、レート制限にご注意ください
+- Please use this tool in accordance with YouTube's Terms of Service
+- Please be careful with proper handling of copyrighted content
+- Please be careful with rate limits when sending large numbers of requests
 
-## トラブルシューティング
+## Troubleshooting
 
-### よくある問題
+### Common Issues
 
-1. **動画が見つからない**
-   - 動画IDまたはURLが正しいか確認してください
-   - 動画が公開されているか確認してください
+1. **Video not found**
+   - Check if the video ID or URL is correct
+   - Check if the video is publicly available
 
-2. **字幕が取得できない**
-   - 動画に字幕が存在するか確認してください
-   - 指定した言語の字幕が利用可能か確認してください
+2. **Cannot get captions**
+   - Check if captions exist for the video
+   - Check if captions in the specified language are available
 
-3. **パフォーマンスが遅い**
-   - キャッシュが有効になっているか確認してください
-   - ネットワーク接続を確認してください
+3. **Slow performance**
+   - Check if caching is enabled
+   - Check your network connection
 
-### ログの確認
+### Checking Logs
 
-詳細なログを確認するには、環境変数 `LOG_LEVEL=debug` を設定してください。
+To view detailed logs, set the environment variable `LOG_LEVEL=debug`:
 
 ```bash
 LOG_LEVEL=debug npx @iamyosuke/youtube-caption-mcp

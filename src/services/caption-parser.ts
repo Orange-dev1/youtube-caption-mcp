@@ -2,7 +2,7 @@ import type { CaptionSegment, CaptionsData } from '../types/youtube.js';
 import { formatToSRT, formatToVTT } from '../utils/formatters.js';
 
 export class CaptionParser {
-  // 字幕データにフォーマット変換を適用
+  // Apply format conversion to caption data
   static formatCaptions(captionsData: CaptionsData): CaptionsData {
     const { format, segments } = captionsData;
 
@@ -17,7 +17,7 @@ export class CaptionParser {
         break;
       case 'raw':
       default:
-        // Raw形式の場合はフォーマット変換なし
+        // No format conversion for raw format
         formattedContent = undefined;
         break;
     }
@@ -28,7 +28,7 @@ export class CaptionParser {
     };
   }
 
-  // 字幕セグメントをマージ（短い間隔のセグメントを結合）
+  // Merge caption segments (combine segments with short intervals)
   static mergeSegments(
     segments: CaptionSegment[],
     maxGap: number = 1.0
@@ -43,7 +43,7 @@ export class CaptionParser {
       const currentEnd = current.start + current.duration;
       const gap = next.start - currentEnd;
 
-      // ギャップが小さい場合はマージ
+      // Merge if gap is small
       if (gap <= maxGap) {
         current.duration = next.start + next.duration - current.start;
         current.text += ' ' + next.text;
@@ -57,7 +57,7 @@ export class CaptionParser {
     return merged;
   }
 
-  // 字幕セグメントをフィルタリング（短すぎるセグメントを除去）
+  // Filter caption segments (remove segments that are too short)
   static filterSegments(
     segments: CaptionSegment[],
     minDuration: number = 0.5
@@ -68,15 +68,15 @@ export class CaptionParser {
     );
   }
 
-  // 字幕テキストの正規化
+  // Normalize caption text
   static normalizeText(text: string): string {
     return text
-      .replace(/\s+/g, ' ') // 複数の空白を単一に
-      .replace(/\n+/g, '\n') // 複数の改行を単一に
+      .replace(/\s+/g, ' ') // Replace multiple spaces with single space
+      .replace(/\n+/g, '\n') // Replace multiple newlines with single newline
       .trim();
   }
 
-  // 字幕セグメントの時間調整
+  // Adjust timing of caption segments
   static adjustTiming(
     segments: CaptionSegment[],
     offset: number = 0
@@ -87,7 +87,7 @@ export class CaptionParser {
     }));
   }
 
-  // 字幕の統計情報を取得
+  // Get statistics for captions
   static getStatistics(segments: CaptionSegment[]) {
     if (segments.length === 0) {
       return {
@@ -116,7 +116,7 @@ export class CaptionParser {
     };
   }
 
-  // 字幕から特定の時間範囲を抽出
+  // Extract specific time range from captions
   static extractTimeRange(
     segments: CaptionSegment[],
     startTime: number,
@@ -126,20 +126,20 @@ export class CaptionParser {
       const segmentEnd = segment.start + segment.duration;
       return segment.start < endTime && segmentEnd > startTime;
     }).map(segment => {
-      // 時間範囲に合わせてセグメントを調整
+      // Adjust segment to fit time range
       const segmentEnd = segment.start + segment.duration;
       const newStart = Math.max(segment.start, startTime);
       const newEnd = Math.min(segmentEnd, endTime);
       
       return {
         ...segment,
-        start: newStart - startTime, // 相対時間に変換
+        start: newStart - startTime, // Convert to relative time
         duration: newEnd - newStart,
       };
     });
   }
 
-  // 字幕テキストの検索
+  // Search text in captions
   static searchText(
     segments: CaptionSegment[],
     query: string,
@@ -159,41 +159,41 @@ export class CaptionParser {
       );
   }
 
-  // 字幕の品質チェック
+  // Validate caption quality
   static validateCaptions(segments: CaptionSegment[]): {
     isValid: boolean;
     issues: string[];
   } {
     const issues: string[] = [];
 
-    // 基本的な検証
+    // Basic validation
     if (segments.length === 0) {
-      issues.push('字幕セグメントが存在しません');
+      issues.push('No caption segments exist');
     }
 
-    // 時間の整合性チェック
+    // Time consistency check
     for (let i = 0; i < segments.length; i++) {
       const segment = segments[i]!;
       
       if (segment.start < 0) {
-        issues.push(`セグメント ${i + 1}: 開始時間が負の値です`);
+        issues.push(`Segment ${i + 1}: Start time is negative`);
       }
       
       if (segment.duration <= 0) {
-        issues.push(`セグメント ${i + 1}: 継続時間が0以下です`);
+        issues.push(`Segment ${i + 1}: Duration is zero or negative`);
       }
       
       if (!segment.text.trim()) {
-        issues.push(`セグメント ${i + 1}: テキストが空です`);
+        issues.push(`Segment ${i + 1}: Text is empty`);
       }
 
-      // 前のセグメントとの重複チェック
+      // Check overlap with previous segment
       if (i > 0) {
         const prevSegment = segments[i - 1]!;
         const prevEnd = prevSegment.start + prevSegment.duration;
         
         if (segment.start < prevEnd) {
-          issues.push(`セグメント ${i + 1}: 前のセグメントと重複しています`);
+          issues.push(`Segment ${i + 1}: Overlaps with previous segment`);
         }
       }
     }
