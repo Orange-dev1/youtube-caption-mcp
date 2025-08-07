@@ -1,7 +1,7 @@
 {
   "name": "@iamyosuke/youtube-caption-mcp",
   "version": "0.1.8",
-  "description": "YouTube Caption MCP Server - A tool for retrieving YouTube video caption information for Claude Desktop",
+  "description": "YouTube字幕取得MCPサーバー - Claude Desktop向けYouTube動画字幕情報取得ツール",
   "type": "module",
   "main": "dist/index.js",
   "bin": {
